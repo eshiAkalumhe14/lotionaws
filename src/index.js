@@ -11,33 +11,28 @@ import App from './App';
 
 
 
-ReactDOM.render(
-  <GoogleOAuthProvider clientId="386932037035-k8v833noqjk7m4***********.apps.googleusercontent.com">
-      <React.StrictMode>
-          <App />
-      </React.StrictMode>
-  </GoogleOAuthProvider>,
-  document.getElementById('root')
-);
+
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <>
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Empty />} />
-          <Route path="/notes" element={<Empty />} />
-          <Route
-            path="/notes/:noteId/edit"
-            element={<WriteBox edit={true} />}
-          />
-          <Route path="/notes/:noteId" element={<WriteBox edit={false} />} />
-          {/* any other path */}
-          <Route path="*" element={<Empty />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId="386932037035-k8v833noqjk7m4***********.apps.googleusercontent.com">
+      <BrowserRouter>
+        <Routes>
+          <Route element={<App />}>
+            <Route path="/" element={<Empty />} />
+            <Route path="/notes" element={<Empty />} />
+            <Route
+              path="/notes/:noteId/edit"
+              element={<WriteBox edit={true} />}
+            />
+            <Route path="/notes/:noteId" element={<WriteBox edit={false} />} />
+            {/* any other path */}
+            <Route path="*" element={<Empty />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   </>
 );
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { googleLogout, useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import Layout from './Layout';
 
 function App() {
     const [ user, setUser ] = useState([]);
@@ -51,6 +52,7 @@ function App() {
                     <p>Email Address: {profile.email}</p>
                     <br />
                     <br />
+                    <Layout />
                     <button onClick={logOut}>Log out</button>
                 </div>
             ) : (
