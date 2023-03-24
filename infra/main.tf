@@ -40,9 +40,9 @@ resource "aws_dynamodb_table" "lotion-notes-table" {
 
 #make use of the locals block to define constants for the lambda function
 locals {
-    func_name_save = "save-note"
-    func_name_get = "get_note"
-    func_name_delete = "delete-note"
+    func_name_save = "save-note-30140722-30162192"
+    func_name_get = "get_note-30140722-30162192"
+    func_name_delete = "delete-note-30140722-30162192"
 
     handler_name = "main.handler"
 
