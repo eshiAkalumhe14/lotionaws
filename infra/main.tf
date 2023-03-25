@@ -13,8 +13,8 @@ provider "aws"{
 
 
 #save a DynamoDB table
-resource "aws_dynamodb_table" "lotion-notes-table" {
-    name = "lotion-30140722-30162192"
+resource "aws_dynamodb_table" "lotion-30140722" {
+    name = "lotion-30140722"
     billing_mode = "PROVISIONED"
     hash_key = "email" # hash key ~ partition key
     range_key = "id" # range key ~ sort key
@@ -30,7 +30,7 @@ resource "aws_dynamodb_table" "lotion-notes-table" {
         type = "S"
     }
     attribute {
-        name = "note_id"
+        name = "id"
         type = "S"
     }
 
@@ -40,9 +40,9 @@ resource "aws_dynamodb_table" "lotion-notes-table" {
 
 #make use of the locals block to define constants for the lambda function
 locals {
-    func_name_save = "save-note-30140722-30162192"
-    func_name_get = "get_note-30140722-30162192"
-    func_name_delete = "delete-note-30140722-30162192"
+    func_name_save = "save-note-30140722"
+    func_name_get = "get_note-30140722"
+    func_name_delete = "delete-note-30140722"
 
     handler_name = "main.handler"
 
@@ -77,62 +77,52 @@ resource "aws_iam_role" "role" {
 }
 
 #create a i-am-policy for the lambda function
-resource "aws_iam_policy" "logs" {
+resource "aws_iam_policy" "function-logs" {
     name = local.policy_name
     description = "A policy to allow lambda functions to write logs"
     policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
     {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Action": [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents",
-                    "dynamodb:PutItem",
-                    "dynamodb:DeleteItem",
-                    "dynamodb:GetItem",
-                    "dynamodb:Query"
-                ],
-                "Resource": [
-                    "arn:aws:dynamodb:*:*:table/*",
-                    "arn:aws:dynamodb:ca-central-1:927785837112:table/lotion-30140722-30162192"
-                ]
-                "Effect": "Allow"
-            }
-        ]
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:PutItem",
+        "logs:Query",
+        "logs:DeleteItem"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:*","${aws_dynamodb_table.lotion-30140722.arn}"
+      ],
+      "Effect": "Allow"
     }
-    EOF  
+  ]
 }
-
+EOF
+}
+   
 #attach the i-am-policy to the i-am-role fucntion role
 resource "aws_iam_role_policy_attachment" "role_logs" {
     role       = aws_iam_role.role.name
-    policy_arn = aws_iam_policy.logs.arn
+    policy_arn = aws_iam_policy.function-logs.arn
 }
 
 data "archive_file" "get-data" {
     type        = "zip"
-    source_file  = "../functions/get-note/main.py"
+    source_file  = "../functions/get-notes/main.py"
     output_path = local.artifact_get
 }
 
 #create a lambda function for get-note
 resource "aws_lambda_function" "get_note"{
-    role = aws.iam_role.role.arn
+    role = aws_iam_role.role.arn
     function_name = local.func_name_get
     handler = local.handler_name
     filename = local.artifact_get
     source_code_hash = data.archive_file.get-data.output_base64sha256
-
-    environment {
-    variables = {
-      "ACCESS_CONTROL_ALLOW_ORIGIN" = "*"
-      "ACCESS_CONTROL_ALLOW_METHODS" = "GET,POST,PUT,DELETE"
-      "ACCESS_CONTROL_ALLOW_HEADERS" = "*"
-        }
-    }
-
+    
     runtime = "python3.9"
 }
 
@@ -144,7 +134,7 @@ data "archive_file" "save-data" {
 
 #create a lambda function for save-note
 resource "aws_lambda_function" "save_note"{
-    role = aws.iam_role.role.arn
+    role = aws_iam_role.role.arn
     function_name = local.func_name_save
     handler = local.handler_name
     filename = local.artifact_save
@@ -166,9 +156,9 @@ data "archive_file" "delete-data" {
 
 #create a lambda function for delete-note
 resource "aws_lambda_function" "delete_note"{
-    role = aws.iam_role.role.arn
+    role = aws_iam_role.role.arn
     function_name = local.func_name_delete
-    handler = local.handler_delete
+    handler = local.handler_name
     filename = local.artifact_delete
     source_code_hash = data.archive_file.delete-data.output_base64sha256
 
@@ -180,13 +170,13 @@ resource "aws_lambda_function" "delete_note"{
 
 
 resource "aws_lambda_function_url" "delete-url" {
-    function_name = aws_lambda_function.delete-note.function_name
+    function_name = aws_lambda_function.delete_note.function_name
     authorization_type = "NONE"
 
     cors{
         allow_credentials = true
         allow_origins = ["*"]
-        allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allow_methods = ["DELETE"]
         allow_headers = ["*"]
         expose_headers = ["keep-alive", "date"]
     }
@@ -195,13 +185,13 @@ resource "aws_lambda_function_url" "delete-url" {
 }
 
 resource "aws_lambda_function_url" "save-url" {
-    function_name = aws_lambda_function.save-note.function_name
+    function_name = aws_lambda_function.save_note.function_name
     authorization_type = "NONE"
 
     cors{
         allow_credentials = true
         allow_origins = ["*"]
-        allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allow_methods = ["POST", "PUT"]
         allow_headers = ["*"]
         expose_headers = ["keep-alive", "date"]
     }
@@ -209,13 +199,13 @@ resource "aws_lambda_function_url" "save-url" {
   
 }
 resource "aws_lambda_function_url" "get-url" {
-    function_name = aws_lambda_function.get-note.function_name
+    function_name = aws_lambda_function.get_note.function_name
     authorization_type = "NONE"
 
     cors{
         allow_credentials = true
         allow_origins = ["*"]
-        allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+        allow_methods = ["GET"]
         allow_headers = ["*"]
         expose_headers = ["keep-alive", "date"]
     }
