@@ -6,13 +6,13 @@ from boto3.dynamodb.conditions import Key
 dynamodb_resource = boto3.resource("dynamodb")
 table = dynamodb_resource.Table("lotion-30140722")
 
-def lambda_handler(event, context):
+def handler(event, context):
     email = event["queryStringParameters"]["email"]
 
     try:
         res = table.query(KeyConditionExpression = Key("email").eq(email))
         return{
-            "StatusCode": 201,
+            "statusCode": 201,
             "body": json.dumps(
                 res["items"]
             )
