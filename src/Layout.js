@@ -3,10 +3,40 @@ import { Outlet, useNavigate, Link } from "react-router-dom";
 import NoteList from "./NoteList";
 import { v4 as uuidv4 } from "uuid";
 import { currentDate } from "./utils";
+import Login from "./Login";
+import axios from 'axios';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
 
 const localStorageKey = "lotion-v1";
 
 function Layout() {
+
+  const [ user, setUser ] = useState(null);
+  const [ profile, setProfile ] = useState(null);
+  const [ email, setEmail] = useState(null);
+
+
+  useEffect(
+    () => {
+        if (user) {
+            axios
+                .get(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`, {
+                    headers: {
+                        Authorization: `Bearer ${user.access_token}`,
+                        Accept: 'Loginlication/json'
+                    }
+                })
+                .then((res) => {
+                    setProfile(res.data);
+                    setEmail(res.data.email);
+                })
+                .catch((err) => console.log(err));
+        }
+    },
+    [ user ]
+  );
+
+  
   const navigate = useNavigate();
   const mainContainerRef = useRef(null);
   const [collapse, setCollapse] = useState(false);
@@ -15,8 +45,10 @@ function Layout() {
   const [currentNote, setCurrentNote] = useState(-1);
 
   useEffect(() => {
-    const height = mainContainerRef.current.offsetHeight;
-    mainContainerRef.current.style.maxHeight = `${height}px`;
+    if(mainContainerRef.current){
+      const height = mainContainerRef.current.offsetHeight;
+      mainContainerRef.current.style.maxHeight = `${height}px`;
+    }
     const existing = localStorage.getItem(localStorageKey);
     if (existing) {
       try {
@@ -42,22 +74,91 @@ function Layout() {
     navigate(`/notes/${currentNote + 1}/edit`);
   }, [notes]);
 
-  const saveNote = (note, index) => {
+
+  useEffect(() => {
+    const storageUser = localStorage.getItem('user');
+    if(storageUser && !profile){
+      const userObj = JSON.parse(storageUser);
+      setUser(userObj)
+      setProfile(true);
+    }
+  }, [setUser,profile])
+
+
+  const saveNote = async(note, index) => {
     note.body = note.body.replaceAll("<p><br></p>", "");
     setNotes([
       ...notes.slice(0, index),
       { ...note },
       ...notes.slice(index + 1),
     ]);
+    console.log(email);
+
+    const res = await fetch("https://kv5x6df5p7vzy7fpd77dcmxnhy0saivu.lambda-url.ca-central-1.on.aws/",{
+      method: "POST",
+      header: {
+        "Content-type": "application/json"
+      },
+      body: JSON.stringify({...note, "email":profile.email}),
+    });
+
+    try{
+      const jsonRes = await res.json();
+      console.log(jsonRes);
+    }catch(error){
+      console.error(error)
+    }
+
     setCurrentNote(index);
     setEditMode(false);
   };
 
-  const deleteNote = (index) => {
+
+  useEffect(()=> {
+
+    const asyncEffect = async() => {
+      if(email){
+        let promise = null;
+        promise = await fetch (`https://n4k6abv235sberbuzk7lksc2c40jxssh.lambda-url.ca-central-1.on.aws?email=${email}`,{
+          method: "GET",
+  
+         });
+        if(promise.status === 200){
+          const note = await promise.json();
+          setNotes(note);
+        }
+          
+      }
+    };
+    asyncEffect();
+  }, [email])
+  
+
+  const deleteNote = async (index) => {
+    const id = notes[index].id;
+
+    setEditMode(false);
+    const res = await fetch("https://unprir6ldja35cwcqeszc6z3x40rrnro.lambda-url.ca-central-1.on.aws/",{
+      method: "DELETE",
+      headers:{
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(
+        {id:id, "email":profile.email}
+      ),
+    });
+
     setNotes([...notes.slice(0, index), ...notes.slice(index + 1)]);
     setCurrentNote(0);
-    setEditMode(false);
+
+    try{
+      const jsonRes = await res.json();
+      console.log(jsonRes);
+    }catch(error){
+      console.error(error)
+    }
   };
+
 
   const addNote = () => {
     setNotes([
@@ -73,13 +174,23 @@ function Layout() {
     setCurrentNote(0);
   };
 
+  const logOut = () => {
+    googleLogout();
+    setProfile(null);
+    setEmail(null);
+    setUser(null);
+    localStorage.removeItem("user")
+  };
+
   return (
     <div id="container">
       <header>
-        <aside>
+      <aside>
+        {!profile ?(null ):(
           <button id="menu-button" onClick={() => setCollapse(!collapse)}>
-            &#9776;
+          &#9776;
           </button>
+        )}
         </aside>
         <div id="app-header">
           <h1>
@@ -87,9 +198,15 @@ function Layout() {
           </h1>
           <h6 id="app-moto">Like Notion, but worse.</h6>
         </div>
-        <aside>&nbsp;</aside>
+        <aside>
+        {!profile ?(null ):(
+          <button id = "logout-button" onClick = {() => logOut() }>Log Out, {email}</button>
+          )
+        }
+          </aside>
       </header>
-      <div id="main-container" ref={mainContainerRef}>
+      {!profile ?(<Login email = {email} setEmail = {setEmail} user = {user} setUser = {setUser} profile = {profile} setProfile = {setProfile} /> ):(
+        <div id="main-container" ref={mainContainerRef}>
         <aside id="sidebar" className={collapse ? "hidden" : null}>
           <header>
             <div id="notes-list-heading">
@@ -107,7 +224,10 @@ function Layout() {
           <Outlet context={[notes, saveNote, deleteNote]} />
         </div>
       </div>
+    
+      )}
     </div>
+      
   );
 }
 
