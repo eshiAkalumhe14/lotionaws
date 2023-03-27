@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import reportWebVitals from "./reportWebVitals";
-import Layout from './Layout';
+
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
