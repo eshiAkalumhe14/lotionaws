@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { currentDate } from "./utils";
 import Login from "./Login";
 import axios from 'axios';
-import { googleLogout } from '@react-oauth/google';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
 
 const localStorageKey = "lotion-v1";
 

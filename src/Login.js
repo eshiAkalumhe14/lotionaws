@@ -1,5 +1,5 @@
-import React from 'react';
-import { useGoogleLogin } from '@react-oauth/google';
+import React, { useState, useEffect } from 'react';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
 
 function Login({email, setEmail, user, setUser, profile, setProfile}) {
 
